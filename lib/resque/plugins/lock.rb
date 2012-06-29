@@ -45,30 +45,30 @@ module Resque
       # passed the same arguments as `perform`, that is, your job's
       # payload.
       def lock(*args)
-        "lock:#{name}-#{args.to_s}"
+        "#{name}-#{args.to_s}"
       end
 
       # Convenience method, not used internally.
       def locked?(*args)
-        Resque.redis.exist(lock(*args))
+        Resque.redis.hexists('lock', lock(*args))
       end
 
       # Where the magic happens.
       def around_perform_lock(*args)
         # Abort if another job has created a lock.
-        return unless Resque.redis.setnx(lock(*args), true)
+        return unless Resque.redis.hsetnx('lock', lock(*args), true)
 
         begin
           yield
         ensure
           # Always clear the lock when we're done, even if there is an
           # error.
-          Resque.redis.del(lock(*args))
+          Resque.redis.hdel('lock', lock(*args))
         end
       end
 
       def on_failure_lock(exception, *args)
-        Resque.redis.del(lock(*args))
+        Resque.redis.hdel('lock', lock(*args))
       end
     end
   end

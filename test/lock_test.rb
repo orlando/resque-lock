@@ -16,7 +16,7 @@ end
 
 class LockTest < Test::Unit::TestCase
   def test_version
-    assert_equal '1.7.0', Resque::Version
+    assert_equal '1.20.0', Resque::Version
   end
 
   def test_lock
