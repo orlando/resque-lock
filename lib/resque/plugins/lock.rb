@@ -45,12 +45,12 @@ module Resque
       # passed the same arguments as `perform`, that is, your job's
       # payload.
       def lock(*args)
-        "lock:#{name}-#{args.to_s}"
+        "#{name}-#{args.to_s}"
       end
 
       def before_enqueue_lock(*args)
         normalized_args = Resque.decode(Resque.encode(args))
-        Resque.redis.setnx(lock(*normalized_args), true)
+        Resque.redis.sadd('lock', lock(*normalized_args))
       end
 
       def around_perform_lock(*args)
@@ -59,12 +59,12 @@ module Resque
         ensure
           # Always clear the lock when we're done, even if there is an
           # error.
-          Resque.redis.del(lock(*args))
+          Resque.redis.srem('lock', lock(*args))
         end
       end
 
       def on_failure_lock(exception, *args)
-        Resque.redis.del(lock(*args))
+        Resque.redis.srem('lock', lock(*args))
       end
     end
   end

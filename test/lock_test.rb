@@ -18,7 +18,7 @@ class LockTest < Test::Unit::TestCase
 
   def setup
     Job.counter = 0
-    Resque.redis.keys('lock:*').each { |key| Resque.redis.del(key) }
+    Resque.redis.del('lock')
     Resque.redis.del('queue:lock_test')
   end
 
@@ -39,16 +39,16 @@ class LockTest < Test::Unit::TestCase
     3.times { Resque.enqueue(Job) }
 
     assert_equal 1, Resque.redis.llen('queue:lock_test')
-    assert Resque.redis.exists(Job.lock)
+    assert Resque.redis.sismember('lock', Job.lock)
   end
 
   def test_perform_with_args
     args = [{ 'a' => 1, :b => 2.0, 'c' => '3' }]
     lock_key = Job.lock(*Resque.decode(Resque.encode(args)))
     Resque.enqueue(Job, *args)
-    assert Resque.redis.exists(lock_key)
+    assert Resque.redis.sismember('lock', lock_key)
     work_off_jobs
-    assert !Resque.redis.exists(lock_key)
+    assert !Resque.redis.sismember('lock', lock_key)
     assert_equal 1, Job.counter
   end
 
