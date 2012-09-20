@@ -45,12 +45,14 @@ module Resque
       # passed the same arguments as `perform`, that is, your job's
       # payload.
       def lock(*args)
-        "lock:#{name}-#{args.to_s}"
+        args = Resque.decode(Resque.encode(args))
+        stringyfied = args.map {|arg| arg.to_s}
+        puts stringyfied.join(', ')
+        "lock:#{name}-#{stringyfied.join(', ')}"
       end
 
       def before_enqueue_lock(*args)
-        normalized_args = Resque.decode(Resque.encode(args))
-        Resque.redis.setnx(lock(*normalized_args), true)
+        Resque.redis.setnx(lock(*args), true)
       end
 
       def around_perform_lock(*args)

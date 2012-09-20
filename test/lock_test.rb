@@ -44,9 +44,20 @@ class LockTest < Test::Unit::TestCase
 
   def test_perform_with_args
     args = [{ 'a' => 1, :b => 2.0, 'c' => '3' }]
-    lock_key = Job.lock(*Resque.decode(Resque.encode(args)))
+    lock_key = Job.lock(*args)
     Resque.enqueue(Job, *args)
     assert Resque.redis.exists(lock_key)
+    work_off_jobs
+    assert !Resque.redis.exists(lock_key)
+    assert_equal 1, Job.counter
+  end
+
+  def test_for_breezi_sync
+    args = ["SiteDownloader","http://orlandodelaguila.breezi.com/","50494689f6182ffd1f000006",{:replace_links=>true, :service_dir_prefix=>"ftp"}]
+    lock_key = Job.lock(*args)
+    Resque.enqueue(Job, *args)
+    assert Resque.redis.exists(lock_key)
+    Job.perform
     work_off_jobs
     assert !Resque.redis.exists(lock_key)
     assert_equal 1, Job.counter
